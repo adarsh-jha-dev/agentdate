@@ -68,7 +68,10 @@ export async function listPeople() {
     db.select({ personId: profiles.personId, analysis: profiles.analysis }).from(profiles),
     db.select({ personId: sources.personId, normalized: sources.normalized }).from(sources).where(eq(sources.kind, "linkedin")),
   ]);
-  return rows.map((p) => {
+  // Finished profiles first, then in-progress, then failed; newest first within each.
+  const rank = { ready: 0, analyzing: 1, scraping: 1, pending: 1, failed: 2 } as const;
+  const sorted = [...rows].sort((a, b) => rank[a.status] - rank[b.status]);
+  return sorted.map((p) => {
     const analysis = profileRows.find((r) => r.personId === p.id)?.analysis as Analysis | undefined;
     const li = liRows.find((r) => r.personId === p.id)?.normalized as LinkedInProfile | undefined;
     return {
