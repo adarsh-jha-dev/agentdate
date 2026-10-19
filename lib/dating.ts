@@ -27,6 +27,7 @@ function agentSystem(me: Dater, other: Dater, setting: string) {
 
 Your date is with ${other.name}. Setting: ${setting}
 This is a date, not a work meeting: get to know each other as people (what you care about, how you spend your time, what you want in a partner). Keep shop talk to a line or two.
+Before the date ends, ask about at least one of ${me.name}'s needs and one of their possible dealbreakers (from the profile), in your own natural words. Be honest when an answer doesn't fit ${me.name}; don't paper over differences.
 Only say what you are saying out loud: no stage directions, no name prefix, no quotation marks around your line. Hard limit: 3 sentences, about 50 words. Ask at most one question per turn.
 Never invent specific people, places, events, anecdotes or numbers that are not in the profile. If something is not in your profile (see "unknowns"), do not make it up; say you'd rather hear about them, or turn it into a question.
 
@@ -60,10 +61,19 @@ Transcript:
 ${lines}`;
 }
 
-const DEBRIEF_SYSTEM = `You privately debrief a date for your client. Judge only against your client's needs, values and possible dealbreakers, using what was actually said.
+const DEBRIEF_SYSTEM = `You privately debrief a date for your client. You are a demanding advocate: your job is to protect your client's time, not to be nice.
+Judge only against your client's needs, values, lifestyle and possible dealbreakers, using what was actually said.
 Every item in "clicked" and "concerns" must cite a specific moment by quoting words from the transcript.
-Be honest: a pleasant chat with no real overlap is not a match, and shared work interests alone are not chemistry.
-If the date never touched your client's needs, values or dealbreakers, say so in "concerns" and keep the score moderate. Score 0-100.`;
+
+Score guide (use the whole range):
+- 85-100: rare. Clear evidence the other person fits several of your client's core needs AND values, they connected on something personal (not just work), and no dealbreaker came up.
+- 70-84: real fit on more than one need or value, with only minor open questions.
+- 50-69: pleasant, some overlap, but your client's key needs or values were untested or only partly matched.
+- 30-49: little real overlap, mismatched pace/lifestyle/priorities, or the conversation stayed on work.
+- 0-29: a possible dealbreaker was hit, or a clear incompatibility.
+Shared work interests alone are not chemistry: cap the score at 65 if that is all they shared.
+
+secondDate is true only if the score is 70 or higher AND nothing in "concerns" touches one of your client's possible dealbreakers. Most first dates should not earn a second date.`;
 
 async function loadDaters(aId: string, bId: string): Promise<[Dater, Dater]> {
   const rows = await db
@@ -90,7 +100,7 @@ export async function runDate(aId: string, bId: string, onEvent: (e: DateEvent) 
   try {
     const { setting } = await structured(
       settingSchema,
-      "You plan first dates. Pick one specific, fitting date activity and place (a café, a walk, a class, a game, a food spot...) themed on what the two people actually have in common, such as a shared hobby. It is a date, not a work session. One sentence. No protected attributes.",
+      "You plan first dates. Pick one specific, fitting date activity and place themed on something the two people actually share, such as a hobby, a food, a place or a pastime. Make it leisurely and personal: a walk, a market, a cooking class, a game, a gig, a hike, a museum, a food crawl. Never a work session, podcast recording, whiteboard, hackathon or meetup. One sentence. No protected attributes.",
       `${profileDigest(a.name, a.analysis)}\n\n---\n\n${profileDigest(b.name, b.analysis)}`,
       MODEL_FAST,
     );
