@@ -7,6 +7,7 @@ import { TraitChips } from "@/components/TraitChips";
 import { Avatar, Card, SourceTag, StatusBadge } from "@/components/ui";
 import type { Analysis } from "@/lib/analyze";
 import { getPersonView, type PersonView } from "@/lib/queries";
+import { isReadOnly } from "@/lib/readonly";
 import type { InstagramProfile, LinkedInProfile } from "@/lib/scrape";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
       {person.status === "failed" && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-bad-soft px-5 py-4 text-sm text-bad">
           <span>{person.error ?? "Processing failed."}</span>
-          {linkedin && instagram && <RetryAnalysis personId={person.id} />}
+          {!isReadOnly() && linkedin && instagram && <RetryAnalysis personId={person.id} />}
         </div>
       )}
       {inProgress && !analysis && (
@@ -42,7 +43,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
 
       {(linkedin || instagram) && <SourcesPanel linkedin={linkedin} instagram={instagram} />}
 
-      {person.status === "ready" && <MatchRunner personId={person.id} name={person.name} />}
+      {person.status === "ready" && !isReadOnly() && <MatchRunner personId={person.id} name={person.name} />}
 
       <div className="grid gap-5 md:grid-cols-2">
         <Card title="Top matches">

@@ -2,6 +2,7 @@ import { AutoRefresh } from "@/components/PersonActions";
 import { StartDate } from "@/components/StartDate";
 import { DateList } from "@/components/DateList";
 import { listDates, readyPeopleNames } from "@/lib/queries";
+import { isReadOnly } from "@/lib/readonly";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,12 @@ export default async function DatesPage() {
         {all.length} {all.length === 1 ? "date" : "dates"} · {matches} {matches === 1 ? "match" : "matches"} (both agents want a second date)
       </p>
 
-      <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
-        <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted">Set up a date</p>
-        <StartDate people={people} />
-      </div>
+      {!isReadOnly() && (
+        <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
+          <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted">Set up a date</p>
+          <StartDate people={people} />
+        </div>
+      )}
 
       {all.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-line px-6 py-16 text-center text-muted">

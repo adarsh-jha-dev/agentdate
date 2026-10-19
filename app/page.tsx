@@ -1,4 +1,9 @@
+import Link from "next/link";
 import { AddPerson } from "@/components/AddPerson";
+import { isReadOnly } from "@/lib/readonly";
+
+// Read READ_ONLY at request time rather than baking it in at build.
+export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
@@ -24,8 +29,34 @@ export default function Home() {
         </ul>
       </div>
       <div className="animate-rise rounded-3xl border border-line bg-surface p-6 shadow-[0_20px_60px_-30px_rgba(28,25,23,0.25)] sm:p-8 [animation-delay:80ms]">
-        <h2 className="mb-6 font-display text-3xl">Add a person</h2>
-        <AddPerson />
+        {isReadOnly() ? (
+          <>
+            <h2 className="mb-3 font-display text-3xl">Explore the demo</h2>
+            <p className="mb-6 leading-relaxed text-muted">
+              This deployment is read-only: adding people and running new dates are turned off. Everything the
+              agents already produced (profiles, dates, debriefs and rankings) is here to browse.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/demo"
+                className="flex-1 rounded-xl bg-ink px-5 py-3.5 text-center text-sm font-medium text-bg transition hover:opacity-90"
+              >
+                Open the demo →
+              </Link>
+              <Link
+                href="/people"
+                className="flex-1 rounded-xl border border-line px-5 py-3.5 text-center text-sm font-medium transition hover:border-muted/40"
+              >
+                Browse people
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="mb-6 font-display text-3xl">Add a person</h2>
+            <AddPerson />
+          </>
+        )}
       </div>
     </div>
   );

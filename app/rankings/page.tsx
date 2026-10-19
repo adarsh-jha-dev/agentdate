@@ -5,6 +5,7 @@ import { PersonPicker } from "@/components/PersonPicker";
 import { Avatar } from "@/components/ui";
 import { readyPeopleNames } from "@/lib/queries";
 import { bestCouples, rankFor, type RankedCandidate } from "@/lib/rank";
+import { isReadOnly } from "@/lib/readonly";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
             Choose someone to see everyone ranked for them.
           </div>
         ) : ranked && ranked.length > 0 ? (
-          <RankedList personName={selected.name} personId={selected.id} rows={ranked} />
+          <RankedList personName={selected.name} personId={selected.id} rows={ranked} canDate={!isReadOnly()} />
         ) : (
           <div className="rounded-2xl border border-dashed border-line px-6 py-12 text-center text-muted">
             Nothing to rank yet.{" "}
@@ -57,7 +58,17 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   );
 }
 
-function RankedList({ personName, personId, rows }: { personName: string; personId: string; rows: RankedCandidate[] }) {
+function RankedList({
+  personName,
+  personId,
+  rows,
+  canDate,
+}: {
+  personName: string;
+  personId: string;
+  rows: RankedCandidate[];
+  canDate: boolean;
+}) {
   const first = personName.split(" ")[0];
   return (
     <ol className="overflow-hidden rounded-2xl border border-line bg-surface">
@@ -86,9 +97,11 @@ function RankedList({ personName, personId, rows }: { personName: string; person
               ) : (
                 <>
                   <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-muted">Not dated yet</span>
-                  <Link href={`/dates/new?a=${personId}&b=${r.id}`} className="text-sm font-medium text-accent hover:underline">
-                    Send on a date →
-                  </Link>
+                  {canDate && (
+                    <Link href={`/dates/new?a=${personId}&b=${r.id}`} className="text-sm font-medium text-accent hover:underline">
+                      Send on a date →
+                    </Link>
+                  )}
                 </>
               )}
               <span className="w-12 text-right font-display text-3xl tabular-nums" title={`Prescore ${r.prescore ?? "–"}${r.mutual != null ? `, mutual ${Math.round(r.mutual)}` : ""}`}>

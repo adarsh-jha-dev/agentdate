@@ -59,6 +59,10 @@ npm run dev                 # http://localhost:3000
 
 Pages: `/` add a person, `/people`, `/p/[id]` profile, `/dates`, `/dates/[id]` transcript, `/rankings`, `/demo`.
 
+## Deploying
+
+Set the same env vars on your host (e.g. Vercel) and point `DATABASE_URL` at an already-seeded database. For a public deployment, set **`READ_ONLY=true`**: every API route that spends Apify or OpenAI credits returns 403 and the buttons that call them are hidden, while profiles, transcripts, rankings and `/demo` stay fully browsable. Model-heavy routes use `maxDuration = 300`; check that your plan allows it.
+
 ## Seeding the demo
 
 ```bash
