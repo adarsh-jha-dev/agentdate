@@ -46,7 +46,14 @@ export function DateLive({ aId, bId }: { aId: string; bId: string }) {
       phase={state.phase}
       error={state.error}
       totalTurns={TOTAL_TURNS}
-      toolbar={<span className="inline-flex items-center gap-1.5"><span className="size-1.5 animate-pulse rounded-full bg-accent" />Live</span>}
+      toolbar={
+        state.phase === "done" || state.phase === "failed" ? null : (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-1.5 animate-pulse rounded-full bg-accent" />
+            Live
+          </span>
+        )
+      }
     />
   );
 }
