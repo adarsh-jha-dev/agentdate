@@ -1,5 +1,6 @@
 import { desc, eq, inArray, or } from "drizzle-orm";
 import type { Analysis } from "./analyze";
+import type { TranscriptTurn, Verdict } from "./date-events";
 import { db } from "./db";
 import { dates, people, prescores, profiles, sources } from "./schema";
 import type { InstagramProfile, LinkedInProfile } from "./scrape";
@@ -78,4 +79,51 @@ export async function listPeople() {
       interests: analysis ? [...analysis.interests, ...analysis.hobbies].slice(0, 4).map((t) => t.trait) : [],
     };
   });
+}
+
+export async function getDate(id: string) {
+  const [d] = await db.select().from(dates).where(eq(dates.id, id));
+  if (!d) return null;
+  const names = await db
+    .select({ id: people.id, name: people.name })
+    .from(people)
+    .where(inArray(people.id, [d.aId, d.bId]));
+  const nameOf = (pid: string) => names.find((n) => n.id === pid)?.name ?? "Unknown";
+  return {
+    id: d.id,
+    status: d.status,
+    setting: d.setting,
+    a: { id: d.aId, name: nameOf(d.aId) },
+    b: { id: d.bId, name: nameOf(d.bId) },
+    transcript: (d.transcript as TranscriptTurn[] | null) ?? [],
+    aVerdict: (d.aVerdict as Verdict | null) ?? null,
+    bVerdict: (d.bVerdict as Verdict | null) ?? null,
+    createdAt: d.createdAt.toISOString(),
+  };
+}
+export type SavedDate = NonNullable<Awaited<ReturnType<typeof getDate>>>;
+
+export async function listDates() {
+  const [rows, names] = await Promise.all([
+    db.select().from(dates).orderBy(desc(dates.createdAt)),
+    db.select({ id: people.id, name: people.name }).from(people),
+  ]);
+  const nameOf = (pid: string) => names.find((n) => n.id === pid)?.name ?? "Unknown";
+  return rows.map((d) => ({
+    id: d.id,
+    status: d.status,
+    setting: d.setting,
+    a: { id: d.aId, name: nameOf(d.aId), score: d.aScore, secondDate: (d.aVerdict as Verdict | null)?.secondDate ?? null },
+    b: { id: d.bId, name: nameOf(d.bId), score: d.bScore, secondDate: (d.bVerdict as Verdict | null)?.secondDate ?? null },
+    turns: ((d.transcript as TranscriptTurn[] | null) ?? []).length,
+    createdAt: d.createdAt,
+  }));
+}
+
+export async function readyPeopleNames() {
+  return db
+    .select({ id: people.id, name: people.name })
+    .from(people)
+    .where(eq(people.status, "ready"))
+    .orderBy(people.name);
 }
