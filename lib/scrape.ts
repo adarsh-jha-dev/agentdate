@@ -132,13 +132,17 @@ export async function scrapeInstagram(url: string) {
   }
 
   const normalized = normalizeInstagram(raw);
-  if (normalized.isPrivate) {
-    throw new ScrapeError("instagram", `@${normalized.username} is private; only public profiles can be analyzed`);
-  }
-  if (!normalized.bio && normalized.posts.length === 0) {
-    throw new ScrapeError("instagram", `@${normalized.username} returned no bio and no posts`);
-  }
+  assertUsableInstagram(normalized);
   return { raw, normalized };
+}
+
+export function assertUsableInstagram(p: InstagramProfile) {
+  if (p.isPrivate) {
+    throw new ScrapeError("instagram", `@${p.username} is private; only public profiles can be analyzed`);
+  }
+  if (!p.bio && p.posts.length === 0) {
+    throw new ScrapeError("instagram", `@${p.username} returned no bio and no posts`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -286,9 +290,13 @@ export async function scrapeLinkedIn(url: string) {
   }
 
   const normalized = normalizeLinkedIn(raw);
-  if (!normalized.name) throw new ScrapeError("linkedin", `profile at ${parsedUrl.url} has no name`);
-  if (!normalized.headline && !normalized.about && normalized.experience.length === 0) {
-    throw new ScrapeError("linkedin", `profile at ${parsedUrl.url} returned no headline, about or experience`);
-  }
+  assertUsableLinkedIn(normalized, parsedUrl.url);
   return { raw, normalized };
+}
+
+export function assertUsableLinkedIn(p: LinkedInProfile, url: string) {
+  if (!p.name) throw new ScrapeError("linkedin", `profile at ${url} has no name`);
+  if (!p.headline && !p.about && p.experience.length === 0) {
+    throw new ScrapeError("linkedin", `profile at ${url} returned no headline, about or experience`);
+  }
 }
