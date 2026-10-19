@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { MatchRunner } from "@/components/MatchRunner";
 import { AutoRefresh, RetryAnalysis } from "@/components/PersonActions";
 import { TraitChips } from "@/components/TraitChips";
 import { Avatar, Card, SourceTag, StatusBadge } from "@/components/ui";
@@ -40,6 +41,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
       {analysis && <AnalysisGrid a={analysis} />}
 
       {(linkedin || instagram) && <SourcesPanel linkedin={linkedin} instagram={instagram} />}
+
+      {person.status === "ready" && <MatchRunner personId={person.id} name={person.name} />}
 
       <div className="grid gap-5 md:grid-cols-2">
         <Card title="Top matches">
