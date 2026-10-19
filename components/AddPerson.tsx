@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { TOTAL_TURNS } from "./dateState";
+import { useMatchRun, type MatchPhase, type MatchRow } from "./useMatchRun";
 
 type Status = "pending" | "scraping" | "analyzing" | "ready" | "failed";
 type Progress = {
@@ -25,6 +28,13 @@ export function AddPerson() {
   const [progress, setProgress] = useState<Progress | null>(null);
   const startedAt = useRef<number>(0);
   const [elapsed, setElapsed] = useState(0);
+
+  // Once the profile is ready: prescore, go on 5 dates, then land on their ranking.
+  const match = useMatchRun(personId ?? "", {
+    onFinished: () => setTimeout(() => router.push(`/rankings?person=${personId}`), 900),
+  });
+  const startMatch = useRef(match.start);
+  startMatch.current = match.start;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +85,7 @@ export function AddPerson() {
             const next: Progress = { status: data.status, error: data.person.error, sources: data.sources };
             setProgress(next);
             if (next.status === "ready") {
-              setTimeout(() => router.push(`/p/${personId}`), 700);
+              startMatch.current();
               return;
             }
             if (next.status === "failed") return;
@@ -98,7 +108,16 @@ export function AddPerson() {
     setProgress(null);
   }
 
-  if (progress) return <Stepper progress={progress} elapsed={elapsed} onReset={reset} />;
+  if (progress && personId)
+    return (
+      <Stepper
+        personId={personId}
+        progress={progress}
+        match={{ phase: match.phase, rows: match.rows, error: match.error }}
+        elapsed={elapsed}
+        onReset={reset}
+      />
+    );
 
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
@@ -172,9 +191,23 @@ function Field(props: {
   );
 }
 
-function Stepper({ progress, elapsed, onReset }: { progress: Progress; elapsed: number; onReset: () => void }) {
+function Stepper({
+  personId,
+  progress,
+  match,
+  elapsed,
+  onReset,
+}: {
+  personId: string;
+  progress: Progress;
+  match: { phase: MatchPhase; rows: MatchRow[]; error: string | null };
+  elapsed: number;
+  onReset: () => void;
+}) {
   const { status, sources, error } = progress;
   const failed = status === "failed";
+  const matchFailed = match.phase === "error";
+  const datesDone = match.rows.filter((r) => r.state === "done" || r.state === "failed").length;
   const scrapeDone = status === "analyzing" || status === "ready";
   // Scrape errors are prefixed "linkedin: …" / "instagram: …"; analysis errors "analysis: …".
   const mentions = (key: string) => !!error?.toLowerCase().includes(`${key}:`);
@@ -187,7 +220,7 @@ function Stepper({ progress, elapsed, onReset }: { progress: Progress; elapsed: 
     return mentions(key) || (!mentions("linkedin") && !mentions("instagram")) ? "failed" : "waiting";
   };
 
-  const steps: { label: string; detail: string; state: StepState }[] = [
+  const steps: { label: string; detail: string; state: StepState; extra?: React.ReactNode }[] = [
     { label: "Scraping LinkedIn", detail: "Career, education, skills", state: scrapeState(sources.linkedin, "linkedin") },
     { label: "Scraping Instagram", detail: "Bio and recent posts", state: scrapeState(sources.instagram, "instagram") },
     {
@@ -195,7 +228,34 @@ function Stepper({ progress, elapsed, onReset }: { progress: Progress; elapsed: 
       detail: "Building a profile from quoted evidence",
       state: status === "analyzing" ? "active" : status === "ready" ? "done" : failed && error?.startsWith("analysis") ? "failed" : "waiting",
     },
-    { label: "Profile ready", detail: "Opening the profile", state: status === "ready" ? "done" : "waiting" },
+    {
+      label: "Profile ready",
+      detail: "Every trait backed by a quote",
+      state: status === "ready" ? "done" : "waiting",
+      extra:
+        status === "ready" ? (
+          <Link href={`/p/${personId}`} target="_blank" className="text-sm font-medium text-accent hover:underline">
+            View profile ↗
+          </Link>
+        ) : null,
+    },
+    {
+      label: "Finding matches",
+      detail: "Scoring everyone else, picking the top 5",
+      state:
+        match.phase === "scoring" ? "active" : match.phase === "dating" || match.phase === "finished" ? "done" : matchFailed ? "failed" : "waiting",
+    },
+    {
+      label: "Going on dates",
+      detail: match.rows.length ? `${datesDone} of ${match.rows.length} finished · 3 at a time` : "Five dates, three at a time",
+      state: match.phase === "dating" ? "active" : match.phase === "finished" ? "done" : "waiting",
+      extra: match.rows.length > 0 ? <DateMiniList rows={match.rows} /> : null,
+    },
+    {
+      label: "Ranking",
+      detail: "Opening their ranking",
+      state: match.phase === "finished" ? "done" : "waiting",
+    },
   ];
 
   return (
@@ -212,21 +272,31 @@ function Stepper({ progress, elapsed, onReset }: { progress: Progress; elapsed: 
             <div className="pb-6 pt-1">
               <p className={`font-medium ${s.state === "waiting" ? "text-muted" : ""}`}>{s.label}</p>
               <p className="text-sm text-muted">{s.detail}</p>
+              {s.extra && <div className="mt-2">{s.extra}</div>}
             </div>
           </li>
         ))}
       </ol>
 
-      {failed ? (
+      {failed || matchFailed ? (
         <div className="mt-2 space-y-3">
-          <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{error ?? "Something went wrong."}</p>
-          <button onClick={onReset} className="text-sm font-medium text-accent hover:underline">
-            ← Try again
-          </button>
+          <p className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">
+            {(failed ? error : match.error) ?? "Something went wrong."}
+          </p>
+          {failed ? (
+            <button onClick={onReset} className="text-sm font-medium text-accent hover:underline">
+              ← Try again
+            </button>
+          ) : (
+            <Link href={`/p/${personId}`} className="text-sm font-medium text-accent hover:underline">
+              Open the profile and retry “Find matches” →
+            </Link>
+          )}
         </div>
       ) : (
         <p className="mt-2 font-mono text-xs text-muted">
-          {elapsed}s elapsed · usually takes 1–3 minutes
+          {formatElapsed(elapsed)} elapsed ·{" "}
+          {status === "ready" ? "each date takes ~2 minutes" : "profile usually takes 1–3 minutes"}
         </p>
       )}
     </div>
@@ -244,4 +314,41 @@ function StepIcon({ state }: { state: StepState }) {
       </span>
     );
   return <span className={`${base} border-line bg-surface`} />;
+}
+
+function formatElapsed(s: number) {
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+}
+
+function DateMiniList({ rows }: { rows: MatchRow[] }) {
+  return (
+    <ul className="space-y-1 text-sm">
+      {rows.map((r) => {
+        const d = r.date;
+        const turns = d.turns.filter((t) => !t.typing).length;
+        const status =
+          r.state === "queued"
+            ? "queued"
+            : r.state === "failed"
+              ? "failed"
+              : d.phase === "done"
+                ? `${d.verdicts.a?.score} · ${d.verdicts.b?.score}${d.verdicts.a?.secondDate && d.verdicts.b?.secondDate ? " ♥" : ""}`
+                : d.phase === "debriefing"
+                  ? "debriefing"
+                  : `turn ${turns}/${TOTAL_TURNS}`;
+        return (
+          <li key={r.id} className="flex items-center justify-between gap-3">
+            {d.dateId ? (
+              <Link href={`/dates/${d.dateId}`} target="_blank" className="truncate hover:underline">
+                with {r.name}
+              </Link>
+            ) : (
+              <span className="truncate text-muted">with {r.name}</span>
+            )}
+            <span className={`shrink-0 font-mono text-xs ${r.state === "failed" ? "text-bad" : "text-muted"}`}>{status}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
