@@ -14,7 +14,7 @@ export async function getPersonView(id: string) {
     db
       .select()
       .from(prescores)
-      .where(or(eq(prescores.aId, id), eq(prescores.bId, id)))
+      .where(eq(prescores.aId, id))
       .orderBy(desc(prescores.score))
       .limit(5),
     db
@@ -25,7 +25,7 @@ export async function getPersonView(id: string) {
   ]);
 
   const otherIds = [
-    ...scoreRows.map((s) => (s.aId === id ? s.bId : s.aId)),
+    ...scoreRows.map((s) => s.bId),
     ...dateRows.map((d) => (d.aId === id ? d.bId : d.aId)),
   ];
   const others = otherIds.length
@@ -41,10 +41,7 @@ export async function getPersonView(id: string) {
     analysis: (profile?.analysis as Analysis | undefined) ?? null,
     linkedin: (li?.normalized as LinkedInProfile | undefined) ?? null,
     instagram: (ig?.normalized as InstagramProfile | undefined) ?? null,
-    matches: scoreRows.map((s) => {
-      const otherId = s.aId === id ? s.bId : s.aId;
-      return { id: otherId, name: nameOf(otherId), score: s.score, reason: s.reason };
-    }),
+    matches: scoreRows.map((s) => ({ id: s.bId, name: nameOf(s.bId), score: s.score, reason: s.reason })),
     dates: dateRows.map((d) => {
       const otherId = d.aId === id ? d.bId : d.aId;
       return {
