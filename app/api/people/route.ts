@@ -1,10 +1,9 @@
 import { eq, or } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
-import { analyzeAndStore } from "@/lib/analyze";
 import { db } from "@/lib/db";
+import { ingestPerson } from "@/lib/ingest";
 import { people, sources } from "@/lib/schema";
-import { scrapeInstagram, scrapeLinkedIn } from "@/lib/scrape";
 import { parseInstagramUrl, parseLinkedInUrl } from "@/lib/urls";
 
 export const maxDuration = 300;
@@ -39,6 +38,8 @@ export async function POST(req: Request) {
   }
 
   if (person) {
+    // Retrying a failed person: clear old sources so progress reflects this attempt.
+    await db.delete(sources).where(eq(sources.personId, person.id));
     [person] = await db
       .update(people)
       .set({ status: "scraping", error: null })
@@ -63,42 +64,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const [igResult, liResult] = await Promise.allSettled([scrapeInstagram(ig.url), scrapeLinkedIn(linkedinUrl)]);
+  // Scraping + analysis take minutes; respond now and let the client poll GET /api/people/[id].
+  after(() => ingestPerson(person.id, { instagram: ig.url, linkedin: linkedinUrl }, { keepName: !!parsed.data.name }));
 
-  // Keep whatever succeeded so a retry has the raw data to look at.
-  for (const [kind, result] of [["instagram", igResult], ["linkedin", liResult]] as const) {
-    if (result.status !== "fulfilled") continue;
-    const row = { raw: result.value.raw, normalized: result.value.normalized, scrapedAt: new Date() };
-    await db
-      .insert(sources)
-      .values({ personId: person.id, kind, ...row })
-      .onConflictDoUpdate({ target: [sources.personId, sources.kind], set: row });
-  }
-
-  if (igResult.status === "rejected" || liResult.status === "rejected") {
-    const errors = [igResult, liResult]
-      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-      .map((r) => (r.reason instanceof Error ? r.reason.message : String(r.reason)));
-    const [failed] = await db
-      .update(people)
-      .set({ status: "failed", error: errors.join("; ") })
-      .where(eq(people.id, person.id))
-      .returning();
-    return NextResponse.json({ person: failed }, { status: 502 });
-  }
-
-  if (!parsed.data.name) {
-    await db.update(people).set({ name: liResult.value.normalized.name }).where(eq(people.id, person.id));
-  }
-
-  try {
-    const { person: ready, analysis } = await analyzeAndStore(person.id);
-    return NextResponse.json({ person: ready, profile: analysis }, { status: 201 });
-  } catch (err) {
-    const [failed] = await db.select().from(people).where(eq(people.id, person.id));
-    return NextResponse.json(
-      { person: failed, error: err instanceof Error ? err.message : String(err) },
-      { status: 502 },
-    );
-  }
+  return NextResponse.json({ person }, { status: 202 });
 }
