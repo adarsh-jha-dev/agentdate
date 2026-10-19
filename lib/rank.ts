@@ -1,4 +1,4 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { Verdict } from "./date-events";
 import { db } from "./db";
 import { dates, people, prescores } from "./schema";
@@ -40,16 +40,27 @@ function latestDatesFor(personId: string, rows: DoneDate[]) {
   return byOther;
 }
 
-export async function rankFor(personId: string): Promise<RankedCandidate[]> {
+type RankingData = Awaited<ReturnType<typeof loadRankingData>>;
+
+// Everything needed to rank anyone, in three queries.
+export async function loadRankingData() {
   const [candidates, scoreRows, dateRows] = await Promise.all([
     db.select({ id: people.id, name: people.name }).from(people).where(eq(people.status, "ready")),
-    db.select().from(prescores).where(or(eq(prescores.aId, personId), eq(prescores.bId, personId))),
-    db
-      .select()
-      .from(dates)
-      .where(and(eq(dates.status, "done"), or(eq(dates.aId, personId), eq(dates.bId, personId)))),
+    db.select().from(prescores),
+    db.select().from(dates).where(eq(dates.status, "done")),
   ]);
-  const latest = latestDatesFor(personId, dateRows);
+  return { candidates, scoreRows, dateRows };
+}
+
+export async function rankFor(personId: string): Promise<RankedCandidate[]> {
+  return rankFromData(personId, await loadRankingData());
+}
+
+export function rankFromData(personId: string, { candidates, scoreRows, dateRows }: RankingData): RankedCandidate[] {
+  const latest = latestDatesFor(
+    personId,
+    dateRows.filter((d) => d.aId === personId || d.bId === personId),
+  );
 
   const ranked = candidates
     .filter((c) => c.id !== personId)
