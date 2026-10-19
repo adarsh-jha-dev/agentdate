@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
@@ -13,13 +13,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const display = Instrument_Serif({
+  variable: "--font-display-serif",
+  weight: "400",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "agentdate",
   description: "AI agents go on dates on your behalf",
 };
 
 const nav = [
-  { href: "/people/new", label: "Add Person" },
+  { href: "/", label: "Add Person" },
   { href: "/people", label: "People" },
   { href: "/dates", label: "Dates" },
   { href: "/rankings", label: "Rankings" },
@@ -33,26 +40,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <header className="border-b border-black/10 dark:border-white/10">
-          <nav className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-sm">
-            <Link href="/" className="font-semibold tracking-tight">
-              agentdate
+      <body className={`${geistSans.variable} ${geistMono.variable} ${display.variable} antialiased`}>
+        <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
+          <nav className="mx-auto flex max-w-6xl items-center gap-x-1 gap-y-2 overflow-x-auto px-4 py-3 text-sm">
+            <Link href="/" className="mr-4 flex shrink-0 items-baseline gap-1 font-display text-2xl leading-none">
+              agent<span className="italic text-accent">date</span>
             </Link>
             {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="opacity-70 hover:opacity-100"
+                className="shrink-0 rounded-full px-3 py-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 {item.label}
               </Link>
             ))}
           </nav>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
       </body>
     </html>
   );
