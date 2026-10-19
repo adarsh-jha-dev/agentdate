@@ -11,7 +11,8 @@
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "test:scrape": "tsx scripts/test-scrape.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "analyze": "tsx scripts/analyze.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
