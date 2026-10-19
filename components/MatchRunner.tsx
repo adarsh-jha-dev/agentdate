@@ -2,75 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { readDateStream } from "@/lib/date-events";
-import { applyDateEvent, initialLiveDate, TOTAL_TURNS, type LiveDate } from "./dateState";
+import { TOTAL_TURNS } from "./dateState";
 import { Avatar } from "./ui";
-
-const CONCURRENCY = 3;
-
-type Candidate = { id: string; name: string; score: number; reason: string | null };
-type Row = Candidate & { state: "queued" | "running" | "done" | "failed"; date: LiveDate };
+import { MATCH_CONCURRENCY as CONCURRENCY, useMatchRun } from "./useMatchRun";
 
 export function MatchRunner({ personId, name }: { personId: string; name: string }) {
   const router = useRouter();
-  const [phase, setPhase] = useState<"idle" | "scoring" | "dating" | "finished" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [scored, setScored] = useState(0);
-  const [rows, setRows] = useState<Row[]>([]);
-
-  const update = (id: string, fn: (r: Row) => Row) => setRows((rs) => rs.map((r) => (r.id === id ? fn(r) : r)));
-
-  async function runOne(c: Candidate) {
-    update(c.id, (r) => ({ ...r, state: "running" }));
-    try {
-      const res = await fetch("/api/dates", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ aId: personId, bId: c.id }),
-      });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
-      let failed = false;
-      await readDateStream(res, (e) => {
-        if (e.type === "error") failed = true;
-        update(c.id, (r) => ({ ...r, date: applyDateEvent(r.date, e) }));
-      });
-      update(c.id, (r) => ({ ...r, state: failed || r.date.phase !== "done" ? "failed" : "done" }));
-    } catch (err) {
-      update(c.id, (r) => ({
-        ...r,
-        state: "failed",
-        date: { ...r.date, error: err instanceof Error ? err.message : String(err) },
-      }));
-    }
-  }
-
-  async function start() {
-    setPhase("scoring");
-    setError(null);
-    try {
-      const res = await fetch(`/api/people/${personId}/match`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      setScored(data.scored);
-      const top: Candidate[] = data.top;
-      setRows(top.map((c) => ({ ...c, state: "queued", date: initialLiveDate })));
-      setPhase("dating");
-      router.refresh(); // show the new prescores in "Top matches"
-
-      const queue = [...top];
-      await Promise.all(
-        Array.from({ length: CONCURRENCY }, async () => {
-          for (let c = queue.shift(); c; c = queue.shift()) await runOne(c);
-        }),
-      );
-      setPhase("finished");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setPhase("error");
-    }
-  }
+  // Refresh so "Top matches" and "Dates" pick up the new rows.
+  const { phase, error, scored, rows, start } = useMatchRun(personId, {
+    onScored: () => router.refresh(),
+    onFinished: () => router.refresh(),
+  });
 
   if (phase === "idle" || phase === "error") {
     return (
