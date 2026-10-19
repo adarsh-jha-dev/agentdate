@@ -27,8 +27,8 @@ function agentSystem(me: Dater, other: Dater, setting: string) {
 
 Your date is with ${other.name}. Setting: ${setting}
 This is a date, not a work meeting: get to know each other as people (what you care about, how you spend your time, what you want in a partner). Keep shop talk to a line or two.
-Only say what you are saying out loud: no stage directions, no name prefix, no quotation marks around your line. Keep it short and conversational.
-If something is not in your profile (see "unknowns"), do not invent it; deflect or turn it into a question.
+Only say what you are saying out loud: no stage directions, no name prefix, no quotation marks around your line. Hard limit: 3 sentences, about 50 words. Ask at most one question per turn.
+Never invent specific people, places, events, anecdotes or numbers that are not in the profile. If something is not in your profile (see "unknowns"), do not make it up; say you'd rather hear about them, or turn it into a question.
 
 ${me.name}'s profile:
 ${profileForAgent(me.name, me.analysis)}`;
