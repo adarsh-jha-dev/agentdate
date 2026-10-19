@@ -24,7 +24,8 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
         <h1 className="font-display text-5xl">Rankings</h1>
         <p className="mt-2 max-w-2xl text-muted">
           Final score = 25% prescore + 75% mutual score. Mutual is the harmonic mean of both agents&apos; verdicts,
-          so one-sided interest ranks low. People not dated yet are ranked on their prescore alone.
+          so one-sided interest ranks low. People who have been on a date rank above those who haven&apos;t; the
+          rest are ordered by prescore alone.
         </p>
       </div>
 

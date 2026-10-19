@@ -44,7 +44,7 @@ mutual    = harmonic mean of both agents' debrief scores = 2ab / (a + b)
 final     = 0.25 * prescore + 0.75 * mutual
 ```
 
-The harmonic mean punishes one-sided interest: 90 and 30 gives 45, while 60 and 60 gives 60. Candidates who haven't been on a date yet are ranked on their prescore alone and flagged "not dated yet". **Best couples** are pairs where both agents want a second date, ordered by `mutual`.
+The harmonic mean punishes one-sided interest: 90 and 30 gives 45, while 60 and 60 gives 60. Candidates who have been on a date rank above those who haven't; undated candidates are ordered by prescore alone and flagged "not dated yet", because a real two-sided verdict is worth more than an untested estimate. **Best couples** are pairs where both agents want a second date, ordered by `mutual`.
 
 ## Local setup
 

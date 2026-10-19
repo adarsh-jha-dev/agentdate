@@ -100,7 +100,8 @@ export function rankFromData(personId: string, { candidates, scoreRows, dateRows
         dated: true, dateId: d.id, why,
       }];
     })
-    .sort((x, y) => y.finalScore - x.finalScore || Number(y.dated) - Number(x.dated));
+    // Dated candidates first: a real two-sided verdict beats an untested prescore, even a high one.
+    .sort((x, y) => Number(y.dated) - Number(x.dated) || y.finalScore - x.finalScore);
 
   return ranked.map((r, i) => ({ ...r, rank: i + 1 }));
 }
