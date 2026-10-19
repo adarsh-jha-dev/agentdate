@@ -1,6 +1,7 @@
 import { eq, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { analyzeAndStore } from "@/lib/analyze";
 import { db } from "@/lib/db";
 import { people, sources } from "@/lib/schema";
 import { scrapeInstagram, scrapeLinkedIn } from "@/lib/scrape";
@@ -86,12 +87,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ person: failed }, { status: 502 });
   }
 
-  // Scraping is done; the analysis step picks up people in "analyzing".
-  const [updated] = await db
-    .update(people)
-    .set({ status: "analyzing", name: parsed.data.name ?? liResult.value.normalized.name })
-    .where(eq(people.id, person.id))
-    .returning();
+  if (!parsed.data.name) {
+    await db.update(people).set({ name: liResult.value.normalized.name }).where(eq(people.id, person.id));
+  }
 
-  return NextResponse.json({ person: updated }, { status: 201 });
+  try {
+    const { person: ready, analysis } = await analyzeAndStore(person.id);
+    return NextResponse.json({ person: ready, profile: analysis }, { status: 201 });
+  } catch (err) {
+    const [failed] = await db.select().from(people).where(eq(people.id, person.id));
+    return NextResponse.json(
+      { person: failed, error: err instanceof Error ? err.message : String(err) },
+      { status: 502 },
+    );
+  }
 }
