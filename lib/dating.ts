@@ -26,7 +26,8 @@ function agentSystem(me: Dater, other: Dater, setting: string) {
   return `You are the dating agent for ${me.name}, representing them on a date. Speak as them in first person, using only facts from their profile. Goal: find out if this person truly fits ${me.name}'s needs and values. Be natural, ask real questions, share real details, probe dealbreakers politely. 1-3 sentences per turn.
 
 Your date is with ${other.name}. Setting: ${setting}
-Only say what you are saying out loud: no stage directions, no name prefix, no quotation marks around your line.
+This is a date, not a work meeting: get to know each other as people (what you care about, how you spend your time, what you want in a partner). Keep shop talk to a line or two.
+Only say what you are saying out loud: no stage directions, no name prefix, no quotation marks around your line. Keep it short and conversational.
 If something is not in your profile (see "unknowns"), do not invent it; deflect or turn it into a question.
 
 ${me.name}'s profile:
@@ -61,7 +62,8 @@ ${lines}`;
 
 const DEBRIEF_SYSTEM = `You privately debrief a date for your client. Judge only against your client's needs, values and possible dealbreakers, using what was actually said.
 Every item in "clicked" and "concerns" must cite a specific moment by quoting words from the transcript.
-Be honest: a pleasant chat with no real overlap is not a match. Score 0-100.`;
+Be honest: a pleasant chat with no real overlap is not a match, and shared work interests alone are not chemistry.
+If the date never touched your client's needs, values or dealbreakers, say so in "concerns" and keep the score moderate. Score 0-100.`;
 
 async function loadDaters(aId: string, bId: string): Promise<[Dater, Dater]> {
   const rows = await db
@@ -88,7 +90,7 @@ export async function runDate(aId: string, bId: string, onEvent: (e: DateEvent) 
   try {
     const { setting } = await structured(
       settingSchema,
-      "You plan first dates. Pick one specific, fitting setting based on what the two people actually have in common (a shared hobby or interest if there is one). One sentence. No protected attributes.",
+      "You plan first dates. Pick one specific, fitting date activity and place (a café, a walk, a class, a game, a food spot...) themed on what the two people actually have in common, such as a shared hobby. It is a date, not a work session. One sentence. No protected attributes.",
       `${profileDigest(a.name, a.analysis)}\n\n---\n\n${profileDigest(b.name, b.analysis)}`,
       MODEL_FAST,
     );
