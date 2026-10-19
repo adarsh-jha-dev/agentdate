@@ -1,4 +1,3 @@
-import "server-only";
 import OpenAI, { APIConnectionError, APIError } from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import type { ReasoningEffort } from "openai/resources/shared";
