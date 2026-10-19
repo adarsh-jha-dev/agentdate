@@ -4,10 +4,12 @@ import { z } from "zod";
 import { analyzeAndStore } from "@/lib/analyze";
 import { db } from "@/lib/db";
 import { people } from "@/lib/schema";
+import { isReadOnly, readOnlyResponse } from "@/lib/readonly";
 
 export const maxDuration = 300;
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (isReadOnly()) return readOnlyResponse();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });

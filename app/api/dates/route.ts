@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { DateEvent } from "@/lib/date-events";
 import { runDate } from "@/lib/dating";
+import { isReadOnly, readOnlyResponse } from "@/lib/readonly";
 
 export const maxDuration = 300;
 
@@ -12,6 +13,7 @@ const body = z
 // Runs a date and streams it as Server-Sent Events. The date keeps running (and is saved)
 // even if the client disconnects.
 export async function POST(req: Request) {
+  if (isReadOnly()) return readOnlyResponse();
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid body", issues: z.flattenError(parsed.error) }, { status: 400 });

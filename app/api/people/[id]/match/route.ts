@@ -4,12 +4,14 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { prescorePerson, topMatches } from "@/lib/prescore";
 import { people } from "@/lib/schema";
+import { isReadOnly, readOnlyResponse } from "@/lib/readonly";
 
 export const maxDuration = 300;
 
 // Prescores this person against everyone ready and returns the top 5 candidates.
 // The client then starts dates with them (POST /api/dates).
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (isReadOnly()) return readOnlyResponse();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });

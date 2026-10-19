@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { ingestPerson } from "@/lib/ingest";
 import { people, sources } from "@/lib/schema";
 import { parseInstagramUrl, parseLinkedInUrl } from "@/lib/urls";
+import { isReadOnly, readOnlyResponse } from "@/lib/readonly";
 
 export const maxDuration = 300;
 
@@ -15,6 +16,7 @@ const body = z.object({
 });
 
 export async function POST(req: Request) {
+  if (isReadOnly()) return readOnlyResponse();
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid body", issues: z.flattenError(parsed.error).fieldErrors }, { status: 400 });
