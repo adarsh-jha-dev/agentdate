@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import type { Side, Verdict } from "@/lib/date-events";
 import { Avatar } from "./ui";
 
@@ -29,6 +32,15 @@ export function DateChat({
 }) {
   const party = (s: Side) => (s === "a" ? a : b);
   const match = verdicts.a?.secondDate && verdicts.b?.secondDate;
+
+  // Follow new text while the reader is near the bottom; leave them alone if they scrolled up.
+  const end = useRef<HTMLDivElement>(null);
+  const textLength = turns.reduce((n, t) => n + t.text.length, 0);
+  const verdictCount = (verdicts.a ? 1 : 0) + (verdicts.b ? 1 : 0);
+  useEffect(() => {
+    const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 240;
+    if (nearBottom) end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [turns.length, textLength, verdictCount, phase]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -105,6 +117,7 @@ export function DateChat({
           </div>
         </section>
       )}
+      <div ref={end} className="h-4" />
     </div>
   );
 }
