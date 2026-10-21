@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
+    "@vercel/analytics": "^2.0.1",
     "apify-client": "^2.25.0",
     "drizzle-orm": "^0.45.4",
     "next": "15.5.28",
